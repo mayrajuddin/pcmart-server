@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 require('dotenv').config()
 const port = process.env.PORT || 8000
@@ -43,6 +43,36 @@ async function run() {
             const product = req.body
             const result = await productsCollection.insertOne(product)
             res.send(result)
+        })
+        //show product to client
+        app.get('/products', async (req, res) => {
+            const query = {}
+            const options = await productsCollection.find(query).toArray()
+            res.send(options)
+        })
+
+        //show product to client
+        app.get('/products/:id', async (req, res) => {
+            const query = {}
+            // const options = await productsCollection.find(query).toArray()
+            const options = await productCatagoryCollection.aggregate([
+                {
+                    $match: {
+                        _id: ObjectId(req.params.id)
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "products",
+                        localField: "brandName",
+                        foreignField: "brand",
+                        as: "products",
+                    },
+                },
+            ]
+            ).toArray()
+
+            res.send(options)
         })
 
     }
