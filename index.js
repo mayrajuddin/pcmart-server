@@ -22,6 +22,7 @@ async function run() {
     try {
         const usersCollection = client.db('pcMart').collection('users');
         const productCatagoryCollection = client.db('pcMart').collection('productCatagory')
+        const productsCollection = client.db('pcMart').collection('products')
 
         // insert user
         app.post('/users', async (req, res) => {
@@ -35,6 +36,13 @@ async function run() {
             const query = {}
             const options = await productCatagoryCollection.find(query).toArray()
             res.send(options)
+        })
+
+        // add product
+        app.post('/products', async (req, res) => {
+            const product = req.body
+            const result = await productsCollection.insertOne(product)
+            res.send(result)
         })
 
     }
