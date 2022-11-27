@@ -23,6 +23,7 @@ async function run() {
         const usersCollection = client.db('pcMart').collection('users');
         const productCatagoryCollection = client.db('pcMart').collection('productCatagory')
         const productsCollection = client.db('pcMart').collection('products')
+        const sellProductsCollection = client.db('pcMart').collection('sellProducts')
 
         // insert user
         app.post('/users', async (req, res) => {
@@ -51,10 +52,9 @@ async function run() {
             res.send(options)
         })
 
-        //show product to client
+        //show product from category
         app.get('/products/:id', async (req, res) => {
             const query = {}
-            // const options = await productsCollection.find(query).toArray()
             const options = await productCatagoryCollection.aggregate([
                 {
                     $match: {
@@ -73,6 +73,13 @@ async function run() {
             ).toArray()
 
             res.send(options)
+        })
+
+        // save buying product  details
+        app.post('/sellProducts', async (req, res) => {
+            const sproduct = req.body
+            const result = await sellProductsCollection.insertOne(sproduct)
+            res.send(result)
         })
 
     }
