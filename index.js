@@ -23,13 +23,20 @@ async function run() {
         const usersCollection = client.db('pcMart').collection('users');
         const productCatagoryCollection = client.db('pcMart').collection('productCatagory')
         const productsCollection = client.db('pcMart').collection('products')
-        const sellProductsCollection = client.db('pcMart').collection('sellProducts')
+        const bookingsProductsCollection = client.db('pcMart').collection('sellProducts')
 
         // insert user
         app.post('/users', async (req, res) => {
             const user = req.body
             const result = await usersCollection.insertOne(user)
             res.send(result)
+        })
+
+        // show all user
+        app.get('/users', async (req, res) => {
+            const query = {}
+            const users = await usersCollection.find(query).toArray()
+            res.send(users)
         })
 
         //get productCatagory 
@@ -76,10 +83,18 @@ async function run() {
         })
 
         // save buying product  details
-        app.post('/sellProducts', async (req, res) => {
-            const sproduct = req.body
-            const result = await sellProductsCollection.insertOne(sproduct)
+        app.post('/bookings', async (req, res) => {
+            const booking = req.body
+            const result = await bookingsProductsCollection.insertOne(booking)
             res.send(result)
+        })
+
+        //show user buying product
+        app.get('/bookings', async (req, res) => {
+            const email = req.query.email
+            const query = { email: email }
+            const bookings = await bookingsProductsCollection.find(query).toArray()
+            res.send(bookings)
         })
 
     }
