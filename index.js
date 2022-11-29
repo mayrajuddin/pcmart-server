@@ -3,6 +3,7 @@ const cors = require('cors');
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
+const jwt = require('jsonwebtoken');
 require('dotenv').config()
 const port = process.env.PORT || 8000
 const app = express()
@@ -18,6 +19,20 @@ app.get('/', async (req, res) => {
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.oejruqx.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+function verifiyJWT(req, res, next) {
+    const authHeader = req.headers.authorization
+    if (!authHeader) {
+        return res.status(401).send('unauthorized access')
+    }
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+        if (err) {
+            return res.status(403).send({ message: 'forbidden access' })
+        }
+        req.decoded = decoded;
+        next()
+    })
+}
 async function run() {
     try {
         const usersCollection = client.db('pcMart').collection('users');
@@ -37,6 +52,20 @@ async function run() {
             const query = {}
             const users = await usersCollection.find(query).toArray()
             res.send(users)
+        })
+
+        // make admin 
+        app.put('/users/admin/:id', async (req, res) => {
+            const id = req.params.id
+            const filter = { _id: ObjectId(id) }
+            const options = { upsert: true }
+            const updatedDoc = {
+                $set: {
+                    role: 'admin'
+                }
+            }
+            const result = await usersCollection.updateOne(filter, updatedDoc, options)
+            res.send(result)
         })
 
         //get productCatagory 
@@ -61,7 +90,6 @@ async function run() {
 
         //show product from category
         app.get('/products/:id', async (req, res) => {
-            const query = {}
             const options = await productCatagoryCollection.aggregate([
                 {
                     $match: {
@@ -90,11 +118,27 @@ async function run() {
         })
 
         //show user buying product
-        app.get('/bookings', async (req, res) => {
+        app.get('/bookings', verifiyJWT, async (req, res) => {
             const email = req.query.email
+            const decodedEmail = req.decoded.email
+            if (email !== decodedEmail) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
             const query = { email: email }
             const bookings = await bookingsProductsCollection.find(query).toArray()
             res.send(bookings)
+        })
+
+        // get token
+        app.get('/jwt', async (req, res) => {
+            const email = req.query.email
+            const query = { email: email }
+            const user = await usersCollection.findOne(query)
+            if (user) {
+                const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '1h' })
+                return res.send({ accessToken: token })
+            }
+            res.status(403).send({ accessToken: '' })
         })
 
     }
