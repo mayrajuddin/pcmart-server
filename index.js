@@ -35,6 +35,7 @@ function verifiyJWT(req, res, next) {
 }
 async function run() {
     try {
+
         const usersCollection = client.db('pcMart').collection('users');
         const productCatagoryCollection = client.db('pcMart').collection('productCatagory')
         const productsCollection = client.db('pcMart').collection('products')
@@ -54,8 +55,38 @@ async function run() {
             res.send(users)
         })
 
+        // chack admin 
+        app.get('/users/admin/:email', async (req, res) => {
+            const email = req.params.email
+            const query = { email }
+            const user = await usersCollection.findOne(query)
+            res.send({ isAdmin: user?.role === 'admin' })
+        })
+
+        // delete user
+        app.delete('/users/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const result = await usersCollection.deleteOne(query)
+            res.send(result)
+        })
+
+        //chacking seller
+        app.get('/users/seller/:email', async (req, res) => {
+            const email = req.params.email
+            const query = { email }
+            const user = await usersCollection.findOne(query)
+            res.send({ isSeller: user?.role === 'seller' })
+        })
+
         // make admin 
-        app.put('/users/admin/:id', async (req, res) => {
+        app.put('/users/admin/:id', verifiyJWT, async (req, res) => {
+            const decodedEmail = req.decoded.email
+            const query = { email: decodedEmail }
+            const user = await usersCollection.findOne(query)
+            if (user?.role !== 'admin') {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
             const id = req.params.id
             const filter = { _id: ObjectId(id) }
             const options = { upsert: true }
@@ -86,6 +117,24 @@ async function run() {
             const query = {}
             const options = await productsCollection.find(query).toArray()
             res.send(options)
+        })
+
+        // show seller product
+        app.get('/products', verifiyJWT, async (req, res) => {
+            const email = req.query.email
+            const decodedEmail = req.decoded.email
+            if (email !== decodedEmail) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+            const query = { email: email }
+            const result = await productsCollection.find(query).toArray()
+            res.send(result)
+        })
+        app.delete('/products/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const result = await productsCollection.deleteOne(query)
+            res.send(result)
         })
 
         //show product from category
@@ -135,7 +184,7 @@ async function run() {
             const query = { email: email }
             const user = await usersCollection.findOne(query)
             if (user) {
-                const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '1h' })
+                const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, { expiresIn: '1d' })
                 return res.send({ accessToken: token })
             }
             res.status(403).send({ accessToken: '' })
