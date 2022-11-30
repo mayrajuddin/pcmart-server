@@ -109,27 +109,53 @@ async function run() {
         // add product
         app.post('/products', async (req, res) => {
             const product = req.body
-            const result = await productsCollection.insertOne(product)
+            const createAt = new Date()
+            const result = await productsCollection.insertOne({ ...product, createAt: createAt })
             res.send(result)
         })
         //show product to client
         app.get('/products', async (req, res) => {
-            const query = {}
-            const options = await productsCollection.find(query).toArray()
+            const query = { adsOn: true }
+            const options = await productsCollection.find(query).sort({
+                createAt: -1
+            }).toArray()
             res.send(options)
         })
 
         // show seller product
-        app.get('/products', verifiyJWT, async (req, res) => {
+        app.get('/sellerProducts', async (req, res) => {
             const email = req.query.email
-            const decodedEmail = req.decoded.email
-            if (email !== decodedEmail) {
-                return res.status(403).send({ message: 'forbidden access' })
+
+            const query = {
+                sellerEmail
+                    : email
             }
-            const query = { email: email }
             const result = await productsCollection.find(query).toArray()
             res.send(result)
         })
+
+        app.get('/advertize/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const result = await productsCollection.updateOne(query, {
+                $set: {
+                    adsOn: true,
+                }
+            })
+            res.send(result)
+        })
+
+        app.get('/verifyUser/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const result = await usersCollection.updateOne(query, {
+                $set: {
+                    verify: true,
+                }
+            })
+            res.send(result)
+        })
+
         app.delete('/products/:id', async (req, res) => {
             const id = req.params.id
             const query = { _id: ObjectId(id) }
