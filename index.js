@@ -205,7 +205,13 @@ async function run() {
             const bookings = await bookingsProductsCollection.find(query).toArray()
             res.send(bookings)
         })
-
+        // for payment
+        app.get('/bookings/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const booking = await bookingsProductsCollection.findOne(query)
+            res.send(booking)
+        })
         // get token
         app.get('/jwt', async (req, res) => {
             const email = req.query.email
