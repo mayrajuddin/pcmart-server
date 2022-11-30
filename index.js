@@ -121,14 +121,19 @@ async function run() {
             }).toArray()
             res.send(options)
         })
-
+        //show product to client
+        app.get('/advertize', async (req, res) => {
+            const query = { adsOn: true }
+            const options = await productsCollection.find(query).sort({
+                createAt: -1
+            }).toArray()
+            res.send(options)
+        })
         // show seller product
         app.get('/sellerProducts', async (req, res) => {
             const email = req.query.email
-
             const query = {
-                sellerEmail
-                    : email
+                sellerEmail: email
             }
             const result = await productsCollection.find(query).toArray()
             res.send(result)
@@ -193,12 +198,9 @@ async function run() {
         })
 
         //show user buying product
-        app.get('/bookings', verifiyJWT, async (req, res) => {
+        app.get('/bookings', async (req, res) => {
             const email = req.query.email
-            const decodedEmail = req.decoded.email
-            if (email !== decodedEmail) {
-                return res.status(403).send({ message: 'forbidden access' })
-            }
+
             const query = { email: email }
             const bookings = await bookingsProductsCollection.find(query).toArray()
             res.send(bookings)
